@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
+      - REDIS_URL=redis://redis:6379
+      - TRANSPORT=mock
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./app:/app/app # Hot reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: homey
+      POSTGRES_PASSWORD: homey
+      POSTGRES_DB: homeyai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    command: celery -A app.worker worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
