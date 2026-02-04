@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, String, Boolean, DateTime, JSON, Integer, Float, ForeignKey, Text
+from sqlalchemy import Column, String, Boolean, DateTime, JSON, Integer, Float, ForeignKey, Text, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -12,8 +12,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    phone_number = Column(String(20), unique=True, nullable=False, index=True)
-    name = Column(String(100))
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String(100))
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     status = Column(String(20), default="home")  # 'home', 'away', 'dnd'
     timezone = Column(String(50), default="UTC")
     settings = Column(JSON, default={})
