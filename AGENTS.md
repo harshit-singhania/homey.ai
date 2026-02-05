@@ -1090,21 +1090,23 @@ All WhatsApp Business API code has been successfully migrated to Telegram Bot AP
 - ✅ Webhook endpoint ready for Telegram Updates
 - ✅ All agents use new Telegram schemas
 
+#### Phase 3: Core Implementation (Feb 4, 2026)
+Successfully connected all major components:
+
+**Changes:**
+- ✅ **Webhook Orchestrator:** `POST /webhooks/telegram` now parses messages, loads user context, and invokes agents.
+- ✅ **Database Persistence:** Users, Conversations, Messages, Scenes, and Events are now saved to PostgreSQL.
+- ✅ **Real Camera Integration:** Added `POST /api/v1/cameras/{id}/scenes` to receive live object detection data.
+- ✅ **Event System:** Implemented rule-based alert engine (e.g., "Person detected at night") with Telegram notifications.
+- ✅ **Safety:** Added Gemini API fallback to prevent crashes if the LLM service is unavailable.
+
+**What's Working:**
+- ✅ End-to-end conversation flow (Telegram <-> LLM <-> DB).
+- ✅ Real-time alerts based on camera scenes.
+- ✅ Context retention (bot remembers previous messages).
+- ✅ Scene history retrieval.
+
 ### 🚧 In Progress / Pending
-
-**Database Migration:**
-- Schema changes defined but migration not yet created
-- Need to run: `alembic revision --autogenerate -m "Migrate to Telegram"`
-- Then: `alembic upgrade head`
-
-**Agent Integration:**
-- Webhook endpoint receives updates but doesn't process them yet
-- Need orchestrator to connect: Webhook → Communication → Conversation → Gatekeeper → Response
-
-**Camera Upload Endpoints:**
-- `POST /api/v1/cameras/{id}/scenes` - Not implemented
-- `POST /api/v1/cameras/{id}/snapshots` - Not implemented
-- `GET /api/v1/cameras/{id}/status` - Not implemented
 
 **Testing:**
 - No unit tests written yet
@@ -1113,46 +1115,30 @@ All WhatsApp Business API code has been successfully migrated to Telegram Bot AP
 
 **Background Tasks:**
 - Celery worker referenced but not implemented
-- Scene processing pipeline not built
-- Event detection loop not running
+- Scene processing pipeline is currently synchronous in the webhook/API (should be async)
+
+**Gatekeeper:**
+- Basic safety rules in prompt, but `GatekeeperAgent` is not yet strictly enforcing policies on outgoing messages.
 
 ### 📋 Next Steps (Priority Order)
 
-1. **Run Database Migrations**
-   ```bash
-   alembic revision --autogenerate -m "Migrate to Telegram"
-   alembic upgrade head
-   ```
+1. **Gatekeeper Implementation**
+   - Implement `GatekeeperAgent` to validate all outgoing messages against safety policies.
+   - Add explicit checks for prohibited content (e.g., medical advice, facial recognition claims).
 
-2. **Get Telegram Bot Token**
-   - Message @BotFather on Telegram
-   - Run `/newbot` command
-   - Configure `.env` with token
+2. **Android Integration**
+   - Provide script or instructions for the Android app to start sending data to the new API.
 
-3. **Build Webhook Integration**
-   - Create orchestrator to handle Telegram updates
-   - Connect Communication → Conversation → Gatekeeper → Response
-   - Test end-to-end message flow
+3. **Background Tasks (Celery)**
+   - Move event processing and alert generation to background workers to improve API response time.
 
-4. **Implement Camera Endpoints**
-   - Scene upload from Android app
-   - Snapshot image handling
-   - Heartbeat monitoring
+4. **Testing**
+   - Write unit tests for the new Event and Perception agents.
 
-5. **Add Database Persistence**
-   - Save scenes to database
-   - Store conversations and messages
-   - User lookup and creation
+### 📝 Notes
 
-6. **Write Tests**
-   - Unit tests for agents
-   - Integration tests for message flow
-   - E2E tests with mock transport
-
-7. **Background Tasks**
-   - Implement Celery worker
-   - Scene processing pipeline
-   - Periodic event detection
+- **Real Data:** The system now prefers real data from the database over mock data.
+- **Alerts:** Alerts are configured per-user in the database. Default rules are applied on first camera setup.
 
 ### 📝 Notes
 

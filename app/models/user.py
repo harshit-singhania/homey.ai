@@ -77,7 +77,7 @@ class Event(Base):
     severity = Column(String(20), default="medium")  # 'low', 'medium', 'high'
     title = Column(String(200))
     description = Column(Text)
-    metadata = Column(JSON, default={})
+    extra_metadata = Column(JSON, default={})
     acknowledged = Column(Boolean, default=False, index=True)
     acknowledged_at = Column(DateTime(timezone=True))
     response = Column(String(50))  # 'viewed', 'ignored', 'escalated'
@@ -132,7 +132,7 @@ class Message(Base):
     message_type = Column(String(20), default="text")  # 'text', 'image', 'interactive'
     external_id = Column(String(100), index=True)
     intent = Column(String(50))
-    metadata = Column(JSON, default={})
+    extra_metadata = Column(JSON, default={})
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     conversation = relationship("Conversation", back_populates="messages")

@@ -5,10 +5,12 @@ services:
     build: .
     ports:
       - "8001:8000"
-    environment:
-      - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
-      - REDIS_URL=redis://redis:6379
-      - TRANSPORT=mock
+    env_file:
+      - .env
+    # environment:
+    #   - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
+    #   - REDIS_URL=redis://redis:6379
+    #   - TRANSPORT=mock
     depends_on:
       - db
       - redis
@@ -25,7 +27,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:7-alpine
@@ -35,9 +37,11 @@ services:
   worker:
     build: .
     command: celery -A app.worker worker --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
-      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    # environment:
+    #   - DATABASE_URL=postgresql://homey:homey@db:5432/homeyai
+    #   - REDIS_URL=redis://redis:6379
     depends_on:
       - db
       - redis

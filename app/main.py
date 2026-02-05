@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.config import settings
-from app.api import health, webhooks, mock
+from app.api import health, webhooks, mock, perception
 
 app = FastAPI(
     title=settings.app_name,
@@ -11,6 +11,7 @@ app = FastAPI(
 
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+app.include_router(perception.router, prefix="/api/v1", tags=["perception"])
 app.include_router(mock.router, prefix="/api/v1/mock", tags=["mock"])
 
 

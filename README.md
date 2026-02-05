@@ -227,10 +227,10 @@ For local development, you can use long polling instead of webhooks. The telegra
 ### Telegram Webhooks
 - `POST /webhooks/telegram` - Telegram webhook receiver
 
-### Camera Endpoints (TODO)
-- `POST /api/v1/cameras/{id}/scenes` - Upload scene descriptor
-- `POST /api/v1/cameras/{id}/snapshots` - Upload snapshot image
-- `GET /api/v1/cameras/{id}/status` - Camera heartbeat
+### Camera Endpoints
+- `POST /api/v1/cameras/{device_id}/scenes` - Upload scene descriptor (Real-time detection data)
+- `POST /api/v1/cameras/{device_id}/snapshots` - Upload snapshot image
+- `GET /api/v1/cameras/{device_id}/status` - Camera heartbeat
 
 ### Mock Interface (Development)
 - `POST /api/v1/mock/send` - Send mock message

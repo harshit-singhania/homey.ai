@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-1.5-flash"
 
     # Database
-    database_url: str = "postgresql://homey:homey@localhost:5432/homeyai"
+    database_url: str = "postgresql://homey:homey@localhost:5433/homeyai"
     redis_url: str = "redis://localhost:6379"
 
     # Media Storage (S3/R2 compatible)

@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional, cast
 from app.agents.base import ConversationAgent, PerceptionAgent
-from app.models.message import IncomingMessage, OutgoingMessage, QuickReplyButton
+from app.models.message import IncomingMessage, OutgoingMessage
 from app.models.scene import SceneDescriptor, UserIntent
 from app.services.gemini import generate_response, classify_intent
 from app.models.event import DEFAULT_RULES
@@ -70,7 +71,7 @@ class ConversationAgentImpl(ConversationAgent):
 
     async def process(self, message: IncomingMessage, context: dict) -> OutgoingMessage:
         intent = await classify_intent(message.content or "")
-        
+
         if intent == UserIntent.STATUS_CHECK:
             return await self._handle_status_check(context)
         elif intent == UserIntent.OBJECT_QUERY:
@@ -82,7 +83,9 @@ class ConversationAgentImpl(ConversationAgent):
         elif intent == UserIntent.SETTINGS:
             return OutgoingMessage(type="text", text="Settings updates coming soon.")
         elif intent == UserIntent.GREETING:
-            return OutgoingMessage(type="text", text="Hi there! How can I help with your home today?")
+            return OutgoingMessage(
+                type="text", text="Hi there! How can I help with your home today?"
+            )
         else:
             scene = context.get("latest_scene")
             prompt = SYSTEM_PROMPT.format(
@@ -91,57 +94,67 @@ class ConversationAgentImpl(ConversationAgent):
                 user_name=context.get("user_name", "User"),
                 camera_name=scene.camera_id if scene else "N/A",
                 scene_timestamp=scene.timestamp.isoformat() if scene else "N/A",
-                objects_list=", ".join([o.type for o in scene.objects]) if scene and scene.objects else "None",
+                objects_list=", ".join([o.type for o in scene.objects])
+                if scene and scene.objects
+                else "None",
                 motion_status="Motion detected" if scene and scene.motion else "No motion",
                 recent_events=context.get("recent_events_summary", "None"),
             )
-            
+
             history = context.get("conversation_history", [])
             history.append({"role": "user", "parts": [message.content or ""]})
-            
-            response_text = await generate_response(prompt, history)
-            
+
+            try:
+                response_text = await generate_response(prompt, history)
+            except ValueError:
+                # Fallback if Gemini API key is missing or invalid
+                response_text = "I'm having trouble connecting to my brain right now. Please check my configuration."
+
             history.append({"role": "model", "parts": [response_text]})
             context["conversation_history"] = history
-            
+
             return OutgoingMessage(type="text", text=response_text)
 
     async def _handle_status_check(self, context: dict) -> OutgoingMessage:
-        scene: SceneDescriptor = context.get("latest_scene")
-        
-        if not scene or not scene.objects and not scene.motion:
+        scene = cast(SceneDescriptor | None, context.get("latest_scene"))
+
+        if not scene or (not scene.objects and not scene.motion):
             return OutgoingMessage(
                 type="text",
                 text="All quiet at home. No recent activity detected.",
             )
-        
+
         if scene.objects:
-            objects_str = ", ".join([f"{o.type} ({int(o.confidence * 100)}%)" for o in scene.objects])
+            objects_str = ", ".join(
+                [f"{o.type} ({int(o.confidence * 100)}%)" for o in scene.objects]
+            )
             motion_str = "with motion" if scene.motion else "no motion"
             return OutgoingMessage(
                 type="text",
                 text=f"I can see: {objects_str}. {motion_str}.",
             )
-        
+
         return OutgoingMessage(
             type="text",
             text="Motion detected recently. No specific objects identified.",
         )
 
-    async def _handle_object_query(self, message: IncomingMessage, context: dict) -> OutgoingMessage:
-        scene: SceneDescriptor = context.get("latest_scene")
+    async def _handle_object_query(
+        self, message: IncomingMessage, context: dict
+    ) -> OutgoingMessage:
+        scene = cast(SceneDescriptor | None, context.get("latest_scene"))
         content_lower = (message.content or "").lower()
-        
+
         if not scene:
             return OutgoingMessage(type="text", text="No scene data available right now.")
-        
+
         for obj in scene.objects:
             if obj.type.lower() in content_lower:
                 return OutgoingMessage(
                     type="text",
                     text=f"Yes, {obj.type} is visible. Confidence: {int(obj.confidence * 100)}%.",
                 )
-        
+
         return OutgoingMessage(
             type="text",
             text=f"I don't see that right now. The area appears empty.",
@@ -151,8 +164,10 @@ class ConversationAgentImpl(ConversationAgent):
         camera_id = context.get("camera_id")
         if not camera_id:
             return OutgoingMessage(type="text", text="No camera configured.")
-        
+
         snapshot_url = await self.perception.request_snapshot(camera_id)
         if snapshot_url:
-            return OutgoingMessage(type="image", image_url=snapshot_url, text="Here's a snapshot from your home.")
+            return OutgoingMessage(
+                type="photo", photo_url=snapshot_url, text="Here's a snapshot from your home."
+            )
         return OutgoingMessage(type="text", text="Unable to capture snapshot right now.")

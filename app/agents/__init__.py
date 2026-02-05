@@ -1,5 +1,11 @@
-from app.agents.base import MessageTransport, PerceptionAgent, ConversationAgent, EventAgent, GatekeeperAgent
-from app.agents.communication import MockTransport, WhatsAppTransport, get_transport
+from app.agents.base import (
+    MessageTransport,
+    PerceptionAgent,
+    ConversationAgent,
+    EventAgent,
+    GatekeeperAgent,
+)
+from app.agents.communication import MockTransport, TelegramTransport, get_transport
 from app.agents.conversation import ConversationAgentImpl
 from app.agents.perception import MockPerceptionAgent
 from app.agents.event import EventAgentImpl
@@ -12,7 +18,7 @@ __all__ = [
     "EventAgent",
     "GatekeeperAgent",
     "MockTransport",
-    "WhatsAppTransport",
+    "TelegramTransport",
     "get_transport",
     "ConversationAgentImpl",
     "MockPerceptionAgent",
