@@ -1,12 +1,13 @@
-import asyncio
 import sys
 import os
+
+# Add app to path first
+sys.path.append(os.getcwd())
+
+import asyncio
 from sqlalchemy import select
 from app.models.user import User, AlertRule, Event
 from app.services.storage import AsyncSessionLocal
-
-# Add app to path
-sys.path.append(os.getcwd())
 
 
 async def debug_alerts():

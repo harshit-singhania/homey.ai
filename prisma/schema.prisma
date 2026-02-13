@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  telegram_id   BigInt         @unique
+  username      String?        @db.VarChar(100)
+  first_name    String?        @db.VarChar(100)
+  last_name     String?        @db.VarChar(100)
+  status        String         @default("home") @db.VarChar(20)
+  timezone      String         @default("UTC") @db.VarChar(50)
+  settings      Json           @default("{}")
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  cameras       Camera[]
+  conversations Conversation[]
+  events        Event[]
+  alert_rules   AlertRule[]
+  audit_logs    AuditLog[]
+
+  @@index([telegram_id])
+  @@map("users")
+}
+
+model Camera {
+  id             String      @id @default(uuid()) @db.Uuid
+  user_id        String      @db.Uuid
+  device_id      String      @unique @db.VarChar(100)
+  name           String      @default("Home Camera") @db.VarChar(100)
+  is_active      Boolean     @default(true)
+  last_heartbeat DateTime?
+  settings       Json        @default("{}")
+  created_at     DateTime    @default(now())
+  user           User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  scenes         Scene[]
+  events         Event[]
+  alert_rules   AlertRule[]
+
+  @@index([user_id])
+  @@index([device_id])
+  @@map("cameras")
+}
+
+model Scene {
+  id               String   @id @default(uuid()) @db.Uuid
+  camera_id        String   @db.Uuid
+  captured_at      DateTime
+  received_at      DateTime @default(now())
+  objects          Json     @default("[]")
+  motion           Boolean  @default(false)
+  motion_score     Float?
+  snapshot_url     String?  @db.VarChar(500)
+  enhanced         Boolean  @default(false)
+  enhancement_data Json?
+  frame_hash       String?  @db.VarChar(64)
+  camera           Camera   @relation(fields: [camera_id], references: [id], onDelete: Cascade)
+  events           Event[]
+
+  @@index([camera_id])
+  @@index([motion])
+  @@map("scenes")
+}
+
+model Event {
+  id              String    @id @default(uuid()) @db.Uuid
+  camera_id       String    @db.Uuid
+  user_id         String    @db.Uuid
+  scene_id        String?   @db.Uuid
+  event_type      String    @db.VarChar(50)
+  severity        String    @default("medium") @db.VarChar(20)
+  title           String?   @db.VarChar(200)
+  description     String?   @db.Text
+  extra_metadata  Json      @default("{}")
+  acknowledged    Boolean   @default(false)
+  acknowledged_at DateTime?
+  response        String?   @db.VarChar(50)
+  created_at      DateTime  @default(now())
+  camera          Camera    @relation(fields: [camera_id], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  scene           Scene?    @relation(fields: [scene_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([acknowledged])
+  @@map("events")
+}
+
+model AlertRule {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @db.Uuid
+  camera_id         String?   @db.Uuid
+  name              String    @db.VarChar(100)
+  enabled           Boolean   @default(true)
+  trigger_type      String    @db.VarChar(50)
+  trigger_config    Json
+  conditions        Json      @default("[]")
+  severity          String    @default("medium") @db.VarChar(20)
+  cooldown_seconds  Int       @default(300)
+  last_triggered_at DateTime?
+  created_at        DateTime  @default(now())
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  camera            Camera?   @relation(fields: [camera_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([enabled])
+  @@map("alert_rules")
+}
+
+model Conversation {
+  id              String    @id @default(uuid()) @db.Uuid
+  user_id         String    @db.Uuid
+  started_at      DateTime  @default(now())
+  last_message_at DateTime  @default(now())
+  context         Json      @default("{}")
+  is_active       Boolean   @default(true)
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@index([user_id])
+  @@index([is_active])
+  @@map("conversations")
+}
+
+model Message {
+  id              String       @id @default(uuid()) @db.Uuid
+  conversation_id String       @db.Uuid
+  direction       String       @db.VarChar(10)
+  content         String       @db.Text
+  message_type    String       @default("text") @db.VarChar(20)
+  external_id     String?      @db.VarChar(100)
+  intent          String?      @db.VarChar(50)
+  extra_metadata  Json         @default("{}")
+  created_at      DateTime     @default(now())
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+  @@index([external_id])
+  @@map("messages")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String?  @db.Uuid
+  action      String   @db.VarChar(100)
+  entity_type String?  @db.VarChar(50)
+  entity_id   String?  @db.Uuid
+  details     Json?
+  created_at  DateTime @default(now())
+  user        User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@map("audit_log")
+}

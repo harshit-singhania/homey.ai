@@ -225,6 +225,68 @@ Deployment Considerations
 
 ⸻
 
+Developer Guidelines
+====================
+
+### Environment Setup
+- **Python:** 3.11+ required
+- **Dependencies:** `pip install -r requirements.txt`
+- **Environment Variables:** Copy `.env.example` to `.env` and configure.
+
+### Build & Verification Commands
+- **Linting:**
+  ```bash
+  ruff check . --fix
+  black .
+  mypy .
+  ```
+- **Testing:**
+  ```bash
+  # Run all tests
+  pytest
+
+  # Run specific test file
+  pytest tests/unit/test_agent.py
+
+  # Run specific test case
+  pytest tests/unit/test_agent.py::test_case_name
+
+  # Run with coverage
+  pytest --cov=app
+  ```
+
+### Code Style & Conventions
+- **Formatting:** 
+  - Line length: 100 characters
+  - Follows `black` and `ruff` defaults
+- **Imports:**
+  - Absolute imports preferred: `from app.models.user import User`
+  - Grouping: Standard Library → Third Party → Local Application
+- **Typing:**
+  - Strict static typing required (`mypy --strict`)
+  - Use modern syntax: `list[str]`, `str | None` instead of `List[str]`, `Optional[str]` where possible (Python 3.10+)
+  - Pydantic models for data validation
+- **Naming:**
+  - Classes: `PascalCase`
+  - Functions/Variables: `snake_case`
+  - Constants: `UPPER_CASE`
+  - Private members: `_leading_underscore`
+- **Async/Await:**
+  - Use `async def` for all I/O bound operations (Database, API calls, LLM)
+  - Ensure `await` is used on all awaitable calls
+- **Error Handling:**
+  - Use specific exceptions (e.g., `ValueError`, `TelegramError`)
+  - Log errors with context before raising or handling
+  - Fail gracefully in agent logic
+
+### Git Workflow
+- **Commit Messages:**
+  - Format: `<type>(<scope>): <subject>`
+  - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+  - Example: `feat(agents): add conversation context retention`
+
+⸻
+
 Implementation Plan
 ===================
 
@@ -237,13 +299,13 @@ Technology Stack
 |-----------|-----------|-----------|
 | Backend | Python 3.11+ / FastAPI | Async support, type hints, rapid development |
 | LLM | Google Gemini | Strong multimodal capabilities, cost-effective |
-| Database | PostgreSQL | Relational reliability, JSON support, time-series queries |
+| LLM | Google Gemini | Strong multimodal capabilities, cost-effective |
+| Database | Supabase (PostgreSQL) | Relational reliability, JSON support, time-series queries |
 | Cache/Queue | Redis | Task queue, caching, pub/sub for real-time |
 | Perception | Hybrid: Android (YOLO) + Cloud (Gemini Vision) | Offline capability + enhanced reasoning |
 | Telegram | python-telegram-bot (async) | Production bot framework, webhook & polling support |
-| ORM | SQLAlchemy | Mature Python ORM with async support |
-| Migrations | Alembic | Database version control |
-| Deployment | Docker + Railway/Render | Containerized, managed services |
+| ORM | Prisma Python | Type-safe ORM, auto-generated client |
+| Deployment | Railway/Render | Managed services |
 
 Project Structure
 -----------------
@@ -282,16 +344,13 @@ homeyai/
 │   └── utils/
 │       ├── __init__.py
 │       └── safety.py             # Safety policy enforcement
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── conftest.py
-├── alembic/                       # Database migrations
-├── docker-compose.yml
+├── prisma/
+│   └── schema.prisma              # Prisma schema definition
 ├── Dockerfile
 ├── requirements.txt
 ├── pyproject.toml
 ├── .env.example
+├── start_local.sh                 # Local start script (uvicorn)
 └── AGENTS.md                      # This file
 ```
 

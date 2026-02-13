@@ -1,10 +1,8 @@
 import random
 from datetime import datetime, timedelta
-from sqlalchemy import select
 from app.agents.base import PerceptionAgent
 from app.models.scene import SceneDescriptor, DetectedObject
-from app.models.user import Scene, Camera
-from app.services.storage import AsyncSessionLocal
+from app.services.storage import db
 
 
 class MockPerceptionAgent(PerceptionAgent):
@@ -53,56 +51,58 @@ class DatabasePerceptionAgent(PerceptionAgent):
     """Perception agent that retrieves real data from the database"""
 
     async def get_latest_scene(self, camera_id: str) -> SceneDescriptor:
-        async with AsyncSessionLocal() as session:
-            # Query latest scene for this camera (by device_id)
-            stmt = (
-                select(Scene)
-                .join(Camera)
-                .where(Camera.device_id == camera_id)
-                .order_by(Scene.captured_at.desc())
-                .limit(1)
-            )
-            result = await session.execute(stmt)
-            db_scene = result.scalar_one_or_none()
+        # Query latest scene for this camera (by device_id)
+        db_scene = await db.scene.find_first(
+            where={
+                "camera": {
+                    "device_id": camera_id
+                }
+            },
+            order={"captured_at": "desc"},
+            include={"camera": True}
+        )
 
-            if not db_scene:
-                return SceneDescriptor(
-                    camera_id=camera_id, timestamp=datetime.utcnow(), objects=[], motion=False
-                )
-
+        if not db_scene:
             return SceneDescriptor(
-                camera_id=camera_id,
-                timestamp=db_scene.captured_at,
-                objects=[DetectedObject(**obj) for obj in db_scene.objects],
-                motion=db_scene.motion,
-                motion_score=db_scene.motion_score,
-                snapshot_url=db_scene.snapshot_url,
-                enhanced=db_scene.enhanced,
+                camera_id=camera_id, timestamp=datetime.utcnow(), objects=[], motion=False
             )
+
+        return SceneDescriptor(
+            camera_id=camera_id,
+            timestamp=db_scene.captured_at,
+            objects=[DetectedObject(**obj) for obj in db_scene.objects], # Prisma Json is returned as dict/list
+            motion=db_scene.motion,
+            motion_score=db_scene.motion_score,
+            snapshot_url=db_scene.snapshot_url,
+            enhanced=db_scene.enhanced,
+        )
 
     async def get_scene_history(self, camera_id: str, since: datetime) -> list[SceneDescriptor]:
-        async with AsyncSessionLocal() as session:
-            stmt = (
-                select(Scene)
-                .join(Camera)
-                .where(Camera.device_id == camera_id, Scene.captured_at >= since)
-                .order_by(Scene.captured_at.asc())
-            )
-            result = await session.execute(stmt)
-            db_scenes = result.scalars().all()
+        db_scenes = await db.scene.find_many(
+            where={
+                "camera": {
+                    "device_id": camera_id
+                },
+                "captured_at": {
+                    "gte": since
+                }
+            },
+            order={"captured_at": "asc"},
+            include={"camera": True}
+        )
 
-            return [
-                SceneDescriptor(
-                    camera_id=camera_id,
-                    timestamp=s.captured_at,
-                    objects=[DetectedObject(**obj) for obj in s.objects],
-                    motion=s.motion,
-                    motion_score=s.motion_score,
-                    snapshot_url=s.snapshot_url,
-                    enhanced=s.enhanced,
-                )
-                for s in db_scenes
-            ]
+        return [
+            SceneDescriptor(
+                camera_id=camera_id,
+                timestamp=s.captured_at,
+                objects=[DetectedObject(**obj) for obj in s.objects],
+                motion=s.motion,
+                motion_score=s.motion_score,
+                snapshot_url=s.snapshot_url,
+                enhanced=s.enhanced,
+            )
+            for s in db_scenes
+        ]
 
     async def request_snapshot(self, camera_id: str) -> str | None:
         # For now, return the latest snapshot URL from DB if available

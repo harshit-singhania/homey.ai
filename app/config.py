@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql://homey:homey@localhost:5433/homeyai"
+    direct_url: str | None = None
     redis_url: str = "redis://localhost:6379"
 
     # Media Storage (S3/R2 compatible)

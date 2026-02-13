@@ -31,24 +31,22 @@ class EventAgentImpl(EventAgent):
             return None
 
         for rule_obj in rules:
-            # Handle both SQLAlchemy objects and Pydantic models/dicts
+            # Handle Prisma models, dicts, or Pydantic models
             if isinstance(rule_obj, dict):
                 rule = AlertRuleModel(**rule_obj)
                 last_triggered = None
             else:
-                # Assuming SQLAlchemy model
-                # Map fields manually or use Pydantic `from_attributes` if set up
-                # Simplified mapping:
+                # Handle Prisma model or other object
                 rule = AlertRuleModel(
-                    id=str(rule_obj.id),
-                    name=rule_obj.name,
-                    enabled=rule_obj.enabled,
-                    trigger=rule_obj.trigger_config,  # DB field is trigger_config
-                    conditions=rule_obj.conditions,
-                    cooldown_seconds=rule_obj.cooldown_seconds,
-                    severity=rule_obj.severity,
+                    id=str(getattr(rule_obj, "id")),
+                    name=getattr(rule_obj, "name"),
+                    enabled=getattr(rule_obj, "enabled"),
+                    trigger=getattr(rule_obj, "trigger_config"),
+                    conditions=getattr(rule_obj, "conditions"),
+                    cooldown_seconds=getattr(rule_obj, "cooldown_seconds"),
+                    severity=getattr(rule_obj, "severity"),
                 )
-                last_triggered = rule_obj.last_triggered_at
+                last_triggered = getattr(rule_obj, "last_triggered_at", None)
 
             if not rule.enabled:
                 continue
